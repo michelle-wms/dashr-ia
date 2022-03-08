@@ -1,55 +1,96 @@
 library(dash)
-library(dashCoreComponents)
 library(dashHtmlComponents)
 library(dashBootstrapComponents)
+library(dashCoreComponents)
 library(ggplot2)
 library(plotly)
+library(purrr)
 
-app <- Dash$new(external_stylesheets = dbcThemes$BOOTSTRAP)
 
-msleep2 <- readr::read_csv(here::here('data', 'msleep.csv'))
+# Set up app frontend
+app <- Dash$new(
+  #title="Spotify Explorer",
+  external_stylesheets=dbcThemes$MINTY
+)
+
+
+# navbar ------
+
+NAV_STYLE <- list(
+  "height" = "50px",
+  "fontSize" = "large"
+)
+
+navbar <- dbcNavbar(
+  dbcContainer(
+    list(
+      htmlA(
+        dbcRow(
+          list(
+            dbcCol(htmlImg(src="https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-icon-marilyn-scott-0.png", height="50px")),
+            dbcCol(dbcNavbarBrand("Spotify Explorer", className="py-10"))
+          ) , 
+          align="center",
+          className="g-0",
+          style=NAV_STYLE
+        )
+      )
+    )
+  )
+)
+
+
+# container -- 
+
+FOOTER_STYLE <- list(
+  "position"="fixed",
+  "bottom" = 0,
+  "left"=0,
+  "right"=0,
+  "height"="25px",
+  "padding"="3px 0 0 5px",
+  "backgroundColor"="green",
+  "color"="white",
+  "fontSize"="small"
+)
+
+
+container <- dbcContainer(
+  list(
+    htmlBr(),
+    #get_tab_section(),
+    htmlFooter(
+      list(
+        "(C) Copyright MIT License: Christopher Alexander, Jennifer Hoang, Michelle Wang, Thea Wenxin. "
+      ), 
+      style=FOOTER_STYLE
+    )
+  ) 
+)
+
 
 app$layout(
-    dbcContainer(
-        list(
-            htmlH1('Dashr heroky deployment'),
-            dccGraph(id='plot-area'),
-            htmlDiv(id='output-area'),
-            htmlBr(),
-            htmlDiv(id='output-area2'),
-            htmlBr(),
-            dccDropdown(
-                id='col-select',
-                options = msleep2 %>% colnames %>% purrr::map(function(col) list(label = col, value = col)),
-                value='bodywt')
-        )
-    )
+  htmlDiv(
+    list(navbar, container), style= list("backgroundColor" = "#eeeeef")
+)
 )
 
-app$callback(
-    output('plot-area', 'figure'),
-    list(input('col-select', 'value')),
-    function(xcol) {
-        p <- ggplot(msleep2) +
-            aes(x = !!sym(xcol),
-                y = sleep_total,
-                color = vore,
-                text = name) +
-            geom_point() +
-            scale_x_log10() +
-            ggthemes::scale_color_tableau()
-        ggplotly(p) %>% layout(dragmode = 'select')
-    }
-)
 
-app$callback(
-    list(output('output-area', 'children'),
-         output('output-area2', 'children')),
-    list(input('plot-area', 'selectedData'),
-         input('plot-area', 'hoverData')),
-    function(selected_data, hover_data) {
-        list(toString(selected_data), toString(hover_data))
-    }
-)
 
-app$run_server(host = '0.0.0.0')
+# container <- dbc.Container(
+#   [
+#     html.Br(),
+#     get_tab_section(),
+#     html.Footer(
+#       [
+#         f"(C) Copyright MIT License: Christopher Alexander, Jennifer Hoang, Michelle Wang, Thea Wenxin. ",
+#         f"Last time updated on {formatted_date}.",
+#       ],
+#       style=FOOTER_STYLE,
+#     ),
+#   ]
+# )
+
+
+
+app$run_server(debug = T)

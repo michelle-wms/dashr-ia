@@ -5,13 +5,25 @@ library(dashCoreComponents)
 library(ggplot2)
 library(plotly)
 library(purrr)
+library(lubridate)
+library(dplyr)
 
 
-# Set up app frontend
+# read data ------
+
+df <- read.csv('data/raw/spotify.csv')
+df <- na.omit(df)
+
+df$date <- as.Date(df$track_album_release_date, format = "%Y-%m-%d")
+
+
+
+# Set up app frontend -----
 app <- Dash$new(
-  #title="Spotify Explorer",
-  external_stylesheets=dbcThemes$MINTY
+  external_stylesheets = dbcThemes$MINTY
 )
+
+app$title("Spotify Explorer App")
 
 
 # navbar ------
@@ -55,7 +67,7 @@ FOOTER_STYLE <- list(
 )
 
 
-container <- dbcContainer(
+footer <- dbcContainer(
   list(
     htmlBr(),
     #get_tab_section(),
@@ -69,28 +81,79 @@ container <- dbcContainer(
 )
 
 
+
+
+# get_artist_section widget + plot
+
+sidebar_widgets <- dbcCol(
+  children=list(
+    htmlH2("Overview", className="display-30"),
+    htmlH6(
+      "Welcome! This is a dashboard displaying trends in popularity of artists, \
+                genres and song types in Spotify. Happy exploring!",
+      className="display-30",
+    ),
+    htmlBr(),
+    htmlBr(),
+    htmlH5("Genre:"),
+    dccDropdown(
+      id="genre",
+      value="pop",
+      style=list("border-width"="0", "width"="100%"),
+      options=list("edm", "latin", "pop", "r&b", "rap", "rock"),
+    ),
+    htmlBr(),
+    htmlBr(),
+    htmlBr(),
+    htmlBr(),
+    htmlBr(),
+    htmlH5("Artist Name:"),
+    dccDropdown(
+      id="artist_selection",
+      value="Ed Sheeran", 
+      style=list("border-width"="0", "width"="100%"),
+      options=unique(df$track_artist) %>%
+        purrr::map(function(col) list(label = col, value = col))
+      )
+  ),
+  width=list('offset'=1) 
+)
+
+# app layout ----
+
 app$layout(
-  htmlDiv(
-    list(navbar, container), style= list("backgroundColor" = "#eeeeef")
+  dbcRow(
+    children = list(
+      navbar,
+      sidebar_widgets,
+      dbcCol(
+        list(dccGraph(id='artist_trend_plot')), width=list('offset'=1)
+        ),
+      footer
+    ), 
+    style= list("backgroundColor" = "#eeeeef")
+  )
 )
+
+app$callback(
+  list(output('artist_trend_plot', 'figure')),
+  list(input('artist_selection', 'value')),
+  function(artist) {
+
+    df_artist <- df[df$track_artist == artist, ]
+
+    p <- ggplot(df_artist, aes(x= date, y=track_popularity)) +
+      geom_line(stat='summary', fun=mean) +
+      labs(x='Date', y='Avg track Popularity')
+    scale_x_date(date_labels =  "%b-%Y") +
+      ggthemes::scale_color_tableau()
+
+    list(ggplotly(p))
+  }
 )
 
 
 
-# container <- dbc.Container(
-#   [
-#     html.Br(),
-#     get_tab_section(),
-#     html.Footer(
-#       [
-#         f"(C) Copyright MIT License: Christopher Alexander, Jennifer Hoang, Michelle Wang, Thea Wenxin. ",
-#         f"Last time updated on {formatted_date}.",
-#       ],
-#       style=FOOTER_STYLE,
-#     ),
-#   ]
-# )
-
-
+# app server --------------
 
 app$run_server(debug = T)

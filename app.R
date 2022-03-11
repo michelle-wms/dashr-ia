@@ -1,11 +1,11 @@
 library(dash)
-library(dashHtmlComponents)
-library(dashBootstrapComponents)
-library(dashCoreComponents)
+# library(dashHtmlComponents)
+# library(dashBootstrapComponents)
+# library(dashCoreComponents)
 library(ggplot2)
 library(plotly)
 library(purrr)
-library(lubridate)
+#library(lubridate)
 library(dplyr)
 
 
@@ -95,13 +95,14 @@ sidebar_widgets <- dbcCol(
     ),
     htmlBr(),
     htmlBr(),
-    htmlH5("Genre:"),
-    dccDropdown(
-      id="genre",
-      value="pop",
-      style=list("border-width"="0", "width"="100%"),
-      options=list("edm", "latin", "pop", "r&b", "rap", "rock"),
-    ),
+    # htmlH5("Genre:"),
+    # dccDropdown(
+    #   id="genre",
+    #   value="pop",
+    #   style=list("border-width"="0", "width"="100%"),
+    #   options=unique(df$playlist_genre) %>%
+    #     purrr::map(function(col) list(label = col, value = col))
+    # ),
     htmlBr(),
     htmlBr(),
     htmlBr(),
@@ -110,13 +111,13 @@ sidebar_widgets <- dbcCol(
     htmlH5("Artist Name:"),
     dccDropdown(
       id="artist_selection",
-      value="Ed Sheeran", 
+      value="Ed Sheeran",
       style=list("border-width"="0", "width"="100%"),
       options=unique(df$track_artist) %>%
         purrr::map(function(col) list(label = col, value = col))
       )
   ),
-  width=list('offset'=1) 
+  width=list('offset'=1, 'size'=3)
 )
 
 # app layout ----
@@ -127,16 +128,31 @@ app$layout(
       navbar,
       sidebar_widgets,
       dbcCol(
-        list(dccGraph(id='artist_trend_plot')), width=list('offset'=1)
+        list(dccGraph(id='artist_trend_plot')), width=list('offset'=0.5)
         ),
       footer
-    ), 
+    ),
     style= list("backgroundColor" = "#eeeeef")
   )
 )
 
+# app$layout(
+#   dbcContainer(
+#     list(
+#       dccGraph(id='artist_trend_plot'),
+#       dccDropdown(
+#         id="artist_selection",
+#         value="Ed Sheeran",
+#         style=list("border-width"="0", "width"="100%"),
+#         options=unique(df$track_artist) %>%
+#           purrr::map(function(col) list(label = col, value = col))
+#         )
+#     )
+#   )
+# )
+
 app$callback(
-  list(output('artist_trend_plot', 'figure')),
+  output('artist_trend_plot', 'figure'),
   list(input('artist_selection', 'value')),
   function(artist) {
 
@@ -144,11 +160,11 @@ app$callback(
 
     p <- ggplot(df_artist, aes(x= date, y=track_popularity)) +
       geom_line(stat='summary', fun=mean) +
-      labs(x='Date', y='Avg track Popularity')
+      labs(x='Date', y='Avg track Popularity') +
     scale_x_date(date_labels =  "%b-%Y") +
       ggthemes::scale_color_tableau()
 
-    list(ggplotly(p))
+    ggplotly(p)
   }
 )
 
@@ -156,4 +172,4 @@ app$callback(
 
 # app server --------------
 
-app$run_server(debug = T)
+app$run_server(host = '0.0.0.0')
